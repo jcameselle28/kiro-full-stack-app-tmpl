@@ -1,0 +1,106 @@
+{
+  "name": "cloudops",
+  "description": "AWS infrastructure management sub-agent. Handles deployments, IaC (CDK/CloudFormation), scaling, resource provisioning, capacity planning, and resource lifecycle management.",
+  "prompt": "file://./cloudops-prompt.md",
+  "mcpServers": {
+    "cdk": {
+      "command": "uvx",
+      "args": ["awslabs.cdk-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    },
+    "cfn": {
+      "command": "uvx",
+      "args": ["awslabs.cfn-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    },
+    "ecs": {
+      "command": "uvx",
+      "args": ["awslabs.ecs-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    },
+    "eks": {
+      "command": "uvx",
+      "args": ["awslabs.eks-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    },
+    "serverless": {
+      "command": "uvx",
+      "args": ["awslabs.aws-serverless-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    },
+    "terraform": {
+      "command": "uvx",
+      "args": ["awslabs.terraform-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    },
+    "ccapi": {
+      "command": "uvx",
+      "args": ["awslabs.ccapi-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    },
+    "aws-documentation": {
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    }
+  },
+  "tools": [
+    "read",
+    "write",
+    "shell",
+    "aws",
+    "@cdk",
+    "@cfn",
+    "@ecs",
+    "@eks",
+    "@serverless",
+    "@terraform",
+    "@ccapi",
+    "@aws-documentation"
+  ],
+  "allowedTools": [
+    "read",
+    "aws",
+    "@cdk",
+    "@cfn",
+    "@ecs",
+    "@eks",
+    "@serverless",
+    "@terraform",
+    "@ccapi",
+    "@aws-documentation"
+  ],
+  "toolsSettings": {
+    "aws": {
+      "allowedServices": [
+        "ec2", "ecs", "eks", "lambda", "s3", "rds", "dynamodb",
+        "cloudformation", "elasticache", "sqs", "sns", "ssm",
+        "autoscaling", "elasticloadbalancing", "ecr", "codepipeline",
+        "codebuild", "codedeploy", "cloudwatch", "logs", "sts",
+        "resourcegroupstaggingapi", "config"
+      ],
+      "autoAllowReadonly": true
+    },
+    "write": {
+      "allowedPaths": [
+        "infrastructure/**",
+        "cdk/**",
+        "cloudformation/**",
+        "scripts/**",
+        "*.yaml",
+        "*.yml",
+        "*.json",
+        "*.ts"
+      ]
+    }
+  },
+  "resources": [
+    "skill://../skills/aws-cli/SKILL.md",
+    "skill://../skills/mermaid-visualizer/SKILL.md",
+    "file://infrastructure/**/*.yaml",
+    "file://infrastructure/**/*.yml",
+    "file://cdk/**/*.ts",
+    "file://cloudformation/**/*.json"
+  ],
+  "model": "claude-opus-4.6"
+}

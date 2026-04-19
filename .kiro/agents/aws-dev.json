@@ -1,0 +1,75 @@
+{
+  "name": "aws-dev",
+  "description": "AWS application development sub-agent. Helps write, review, and refactor application code for AWS-compatible stacks: Python/Boto3, Node.js/AWS SDK, TypeScript/CDK, serverless (SAM/SST), containerized apps (ECS/EKS), and IaC patterns.",
+  "prompt": "file://./aws-dev-prompt.md",
+  "mcpServers": {
+    "aws-iac": {
+      "command": "uvx",
+      "args": ["awslabs.aws-iac-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    },
+    "serverless": {
+      "command": "uvx",
+      "args": ["awslabs.sam-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    },
+    "lambda-tools": {
+      "command": "uvx",
+      "args": ["awslabs.lambda-tool-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    },
+    "aws-documentation": {
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    }
+  },
+  "tools": [
+    "read",
+    "write",
+    "shell",
+    "@aws-iac",
+    "@serverless",
+    "@lambda-tools",
+    "@aws-documentation"
+  ],
+  "allowedTools": [
+    "read",
+    "write",
+    "@aws-iac",
+    "@serverless",
+    "@lambda-tools",
+    "@aws-documentation"
+  ],
+  "toolsSettings": {
+    "write": {
+      "allowedPaths": [
+        "src/**",
+        "lib/**",
+        "tests/**",
+        "infrastructure/**",
+        "cdk/**",
+        "scripts/**",
+        "*.py",
+        "*.ts",
+        "*.js",
+        "*.json",
+        "*.yaml",
+        "*.yml",
+        "*.toml",
+        "*.cfg",
+        "Dockerfile",
+        "docker-compose.yml",
+        "Makefile"
+      ]
+    }
+  },
+  "resources": [
+    "skill://../skills/aws-dev/SKILL.md",
+    "skill://../skills/aws-cli/SKILL.md",
+    "file://src/**",
+    "file://lib/**",
+    "file://infrastructure/**"
+  ],
+  "model": "claude-opus-4.6"
+}

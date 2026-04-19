@@ -1,0 +1,49 @@
+{
+  "name": "aws-ops",
+  "description": "Principal AWS operations agent for CloudOps, SRE, FinOps, SecurityOps, and NetworkOps. Orchestrates specialized sub-agents to handle infrastructure management, reliability engineering, cost optimization, security compliance, and network operations.",
+  "prompt": "file://./aws-ops-prompt.md",
+  "mcpServers": {
+    "aws-documentation": {
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    }
+  },
+  "tools": [
+    "read",
+    "write",
+    "shell",
+    "aws",
+    "use_subagent",
+    "@aws-documentation"
+  ],
+  "allowedTools": [
+    "read",
+    "aws",
+    "use_subagent",
+    "@aws-documentation"
+  ],
+  "toolsSettings": {
+    "aws": {
+      "autoAllowReadonly": true
+    },
+    "subagent": {
+      "availableAgents": ["cloudops", "aws-dev", "sre", "finops", "security-ops", "network-ops"],
+      "trustedAgents": ["cloudops", "aws-dev", "sre", "finops", "security-ops", "network-ops"]
+    }
+  },
+  "resources": [
+    "file://../steering/aws-ops-guidelines.md"
+  ],
+  "hooks": {
+    "agentSpawn": [
+      {
+        "command": "aws sts get-caller-identity --output text 2>/dev/null || echo 'No AWS credentials configured'",
+        "timeout_ms": 30000
+      }
+    ]
+  },
+  "model": "claude-opus-4.6",
+  "keyboardShortcut": "ctrl+o",
+  "welcomeMessage": "🔧 AWS Ops ready. I can help with CloudOps, SRE, FinOps, Security, and Networking. What do you need?"
+}

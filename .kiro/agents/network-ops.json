@@ -1,0 +1,46 @@
+{
+  "name": "network-ops",
+  "description": "AWS networking operations sub-agent. Handles VPC architecture, load balancing (ALB/NLB), DNS (Route53), hybrid connectivity (Direct Connect/VPN), CloudFront CDN, security groups, NACLs, and connectivity troubleshooting.",
+  "prompt": "file://./network-ops-prompt.md",
+  "mcpServers": {
+    "cloudwatch": {
+      "command": "uvx",
+      "args": ["awslabs.cloudwatch-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    },
+    "aws-documentation": {
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    }
+  },
+  "tools": [
+    "read",
+    "write",
+    "shell",
+    "aws",
+    "@cloudwatch",
+    "@aws-documentation"
+  ],
+  "allowedTools": [
+    "read",
+    "aws",
+    "@cloudwatch",
+    "@aws-documentation"
+  ],
+  "toolsSettings": {
+    "aws": {
+      "allowedServices": [
+        "ec2", "elasticloadbalancing", "route53", "route53resolver",
+        "cloudfront", "globalaccelerator", "directconnect",
+        "networkmanager", "network-firewall", "wafv2",
+        "logs", "cloudwatch", "sts", "s3"
+      ],
+      "autoAllowReadonly": true
+    }
+  },
+  "resources": [
+    "skill://../skills/aws-cli/SKILL.md"
+  ],
+  "model": "claude-opus-4.6"
+}

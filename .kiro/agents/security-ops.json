@@ -1,0 +1,60 @@
+{
+  "name": "security-ops",
+  "description": "AWS security operations sub-agent. Handles IAM audits, compliance assessments (CIS, SOC2, PCI-DSS), threat detection, GuardDuty findings, vulnerability management, encryption reviews, and security guardrails.",
+  "prompt": "file://./security-ops-prompt.md",
+  "mcpServers": {
+    "iam": {
+      "command": "uvx",
+      "args": ["awslabs.iam-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    },
+    "cloudtrail": {
+      "command": "uvx",
+      "args": ["awslabs.cloudtrail-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    },
+    "well-architected-security": {
+      "command": "uvx",
+      "args": ["awslabs.well-architected-security-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    },
+    "aws-documentation": {
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
+      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+    }
+  },
+  "tools": [
+    "read",
+    "write",
+    "shell",
+    "aws",
+    "@iam",
+    "@cloudtrail",
+    "@well-architected-security",
+    "@aws-documentation"
+  ],
+  "allowedTools": [
+    "read",
+    "aws",
+    "@iam",
+    "@cloudtrail",
+    "@well-architected-security",
+    "@aws-documentation"
+  ],
+  "toolsSettings": {
+    "aws": {
+      "allowedServices": [
+        "iam", "access-analyzer", "securityhub", "guardduty",
+        "config", "cloudtrail", "inspector2", "kms", "secretsmanager",
+        "ssm", "wafv2", "shield", "macie2", "organizations",
+        "controltower", "sts", "s3", "ec2", "logs"
+      ],
+      "autoAllowReadonly": true
+    }
+  },
+  "resources": [
+    "skill://../skills/aws-cli/SKILL.md"
+  ],
+  "model": "claude-opus-4.6"
+}
