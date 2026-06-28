@@ -23,19 +23,19 @@ If you don't have AWS access yet, you can still complete Steps 1–6 (build and 
 
 ---
 
-## Step 1 — Get the template into your own repo
+## Step 1 — Create your project from this template
 
-Create a new project from this template, then open it in Kiro.
+This repo is a **template repository** — you create a *new* repo from it and work there. This template stays clean and untouched; you never push your project back to it.
+
+The easiest way is GitHub's "Use this template" feature, which gives your new repo a fresh history (none of the template's commits come along):
 
 ```bash
-# Option A: start a brand-new repo from this template
-gh repo create my-app --private --clone
-cp -r /path/to/this-template/.kiro my-app/.kiro
-cp -r /path/to/this-template/docs my-app/docs        # optional: keep the docs
+# Creates a new private repo from the template and clones it
+gh repo create my-app --template jcameselle28/kiro-full-stack-app-tmpl --private --clone
 cd my-app
-
-# Option B: you already cloned the template — just point it at your own repo
 ```
+
+Or click **"Use this template" → "Create a new repository"** on the template's GitHub page.
 
 Then open the folder in Kiro. The `.kiro/` configuration is detected automatically.
 
@@ -122,7 +122,17 @@ Kiro pushes the branch and opens a PR using the project's template. Then:
 - CI runs automatically (tests + lint)
 - Once green and approved, **squash merge** into `main` and delete the branch
 
-> First time setting up the repo? Enable branch protection on `main` so the workflow is enforced. Ask Kiro: *"Set up branch protection on main with the gh CLI"* — it should require a PR with ≥1 approval, require status checks (CI) to pass, require branches to be up to date, and disallow direct/force pushes.
+> First time setting up the repo? Enable branch protection on `main` so the workflow is enforced. Ask Kiro: *"Set up branch protection on main"*, or run it yourself (note: send a JSON body — the `-f` string form is rejected by the API):
+> ```bash
+> gh api -X PUT repos/<owner>/<repo>/branches/main/protection \
+>   -H "Accept: application/vnd.github+json" \
+>   --input - <<'JSON'
+> { "required_status_checks": null, "enforce_admins": true,
+>   "required_pull_request_reviews": { "required_approving_review_count": 1 },
+>   "restrictions": null }
+> JSON
+> ```
+> This requires a PR with ≥1 approval and blocks direct/force pushes.
 
 ---
 
