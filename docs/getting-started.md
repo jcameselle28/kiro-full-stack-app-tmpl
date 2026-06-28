@@ -2,22 +2,15 @@
 
 ## 1. Clone the Repository
 
-From GitLab (internal):
 ```bash
-git clone https://gitlab.example.com/your-group/aicloudops.git my-aws-project
-cd my-aws-project
-```
-
-From GitHub:
-```bash
-git clone <repo-url> my-aws-project
-cd my-aws-project
+git clone <repo-url> my-aws-webapp
+cd my-aws-webapp
 ```
 
 Or copy just the `.kiro/` folder into an existing project:
 
 ```bash
-cp -r /path/to/aicloudops/.kiro /path/to/your-project/.kiro
+cp -r /path/to/template/.kiro /path/to/your-project/.kiro
 ```
 
 ## 2. Install Prerequisites
@@ -26,7 +19,7 @@ cp -r /path/to/aicloudops/.kiro /path/to/your-project/.kiro
 # Install uv (required for MCP servers)
 brew install uv
 
-# Verify AWS CLI is configured
+# Verify AWS CLI is configured (for deploys / SDK calls)
 aws sts get-caller-identity
 ```
 
@@ -34,12 +27,12 @@ aws sts get-caller-identity
 
 ### Option A: Kiro IDE
 
-1. Open your project folder in Kiro IDE
+1. Open the project folder in Kiro IDE
 2. The `.kiro/` folder is detected automatically
-3. Steering files, skills, and hooks activate immediately
+3. Steering files and skills activate immediately
 4. Start chatting — the agent is ready
 
-Kiro IDE provides the full experience: steering rules shape every conversation, skills activate on demand, hooks automate linting and security checks, and MCP servers can be toggled on/off.
+Kiro IDE provides the full experience: steering rules shape every conversation, skills activate on demand, and MCP servers can be toggled on/off.
 
 ### Option B: Kiro CLI
 
@@ -55,31 +48,31 @@ cd /path/to/your-project
 kiro chat
 ```
 
-3. The CLI picks up the `.kiro/` configuration from the current directory. Steering files and skills are available. Hooks that use `runCommand` will execute in your terminal.
+3. The CLI picks up the `.kiro/` configuration from the current directory. Steering files and skills are available.
 
 For non-interactive use (scripting, CI):
 
 ```bash
 # Ask a single question
-kiro chat --message "What EC2 instances are running in us-east-1?"
+kiro chat --message "Scaffold a FastAPI service with a health endpoint"
 
 # Pipe input
-echo "Analyze my S3 costs for the last 30 days" | kiro chat
+echo "Add a SQLAlchemy model and Alembic migration for an Account table" | kiro chat
 ```
 
 ## 4. Verify It's Working
 
-In either Kiro IDE or CLI, try:
+In either Kiro IDE or CLI, try a development task:
 
 ```
-Check if my AWS credentials are valid
+Scaffold a minimal API endpoint with a /healthz route and a unit test
 ```
 
-You should see the agent run `aws sts get-caller-identity` and report your account info. The output will follow the format defined in the `output-format.md` steering file.
+The agent should generate code that follows the project's standards — type hints/strict TypeScript, structured logging, and a matching test. Output follows the format defined in the `output-format.md` steering file.
 
-## 5. Configure for Your Project
+## 5. Create Your Project Config
 
-Copy and customize the project config template:
+Create your project config from the template, then make it always-on:
 
 ```bash
 cp .kiro/steering/project-config-template.md .kiro/steering/project-config.md
@@ -87,19 +80,27 @@ cp .kiro/steering/project-config-template.md .kiro/steering/project-config.md
 
 Edit `project-config.md`:
 - Change `inclusion: manual` to `inclusion: always` in the frontmatter
-- Fill in your project-specific values (runtime, framework, deployment strategy, etc.)
+- Fill in the `[placeholder]` values:
+  - Backend framework (FastAPI / Flask / Django, or Express / Fastify / NestJS)
+  - Database engine (PostgreSQL / MySQL) and ORM
+  - IaC tool (CDK / Terraform)
+  - Project name, team, AWS account ID, CI/CD, and auth approach
 
-This tells the agent about your specific stack and conventions.
+This tells the agent about your specific stack and conventions. If you settle on a single language, you can also delete the standards file you don't need (`python-standards.md` or `typescript-standards.md`).
 
-## 6. Enable MCP Servers (Optional)
+## 6. Enable the AWS MCP (Optional)
 
-MCP servers are disabled by default to save tokens. Enable them when needed:
+The AWS MCP server is disabled by default to save tokens. It uses the MCP Proxy for AWS and requires valid AWS credentials when enabled.
 
 In chat:
 ```
-Enable the AWS docs MCP
+Enable the AWS MCP
 ```
 
-Or manually edit `.kiro/settings/mcp.json` and change `"disabled": true` to `"disabled": false` for the server you need.
+Or manually edit `.kiro/settings/mcp.json` and change `"disabled": true` to `"disabled": false`.
 
-See [MCP Servers](./mcp-servers.md) for the full list and usage guide.
+See [MCP Servers](./mcp-servers.md) for the full usage guide, including read-only vs. write access and multi-account setup.
+
+## 7. Next Steps
+
+With Kiro set up and your project config in place, follow the [Golden Path](./golden-path.md) — a step-by-step walkthrough that takes you from this point to a deployed v1.0 app (scaffold → build a feature → open a PR → deploy). When you're ready to ship, the [Deployment](./deployment.md) guide covers AWS prerequisites, infrastructure setup, releases, and rollback.

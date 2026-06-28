@@ -42,16 +42,20 @@ fileMatchPattern: "**/*.py"
 - Separate dev dependencies from runtime
 - Use virtual environments always (venv or uv)
 
-## AWS-Specific Python
-- Initialize boto3 clients outside handler functions (connection reuse)
-- Use `botocore.config.Config` for retry configuration
-- Prefer `resource` API for simple CRUD, `client` API for advanced operations
+## Web & AWS Integration (EC2 / RDS)
+- Use a web framework (FastAPI/Flask/Django) with an ASGI/WSGI server (uvicorn/gunicorn) behind the ALB
+- Expose dedicated health and readiness endpoints for ALB target group checks
+- Access RDS through an ORM (SQLAlchemy) with a configured connection pool; never open a connection per request
+- Manage schema changes with Alembic migrations checked into the repo
+- Always use parameterized queries / ORM bindings — never string-interpolate SQL
+- Initialize boto3 clients once at module load (connection reuse); configure retries with `botocore.config.Config`
+- Use the default credential chain (EC2 instance profile) — never hardcode credentials
+- Load secrets and config from Secrets Manager / SSM Parameter Store, not from committed files
 - Always handle `ClientError` from boto3 calls with specific error code checks
-- Use Powertools for Lambda: Logger, Tracer, Metrics, Parameters
 
 ## Testing
 - Use `pytest` as the test framework
-- Use `moto` for mocking AWS services in unit tests
+- Run integration tests against a real local database (Docker Postgres/MySQL); use `moto` only when mocking auxiliary AWS services (S3, Secrets Manager)
 - Use `pytest-cov` for coverage (target: 80%+)
 - Fixtures in `conftest.py`, scoped appropriately
 - Mark slow/integration tests with `@pytest.mark.integration`

@@ -1,122 +1,18 @@
 # CI/CD Pipeline Templates
 
-## GitHub Actions — SAM Serverless Deploy
+For web apps deployed on **EC2 / Auto Scaling behind an ALB**. The pipeline builds one immutable container image, pushes it to ECR, runs DB migrations, and rolls it out. See the `deploy-release` skill for rollout strategy (rolling / blue-green) and migration ordering; this file is the concrete YAML.
+
+All templates use **OIDC** for AWS auth — no long-lived access keys.
+
+## GitHub Actions — Build, Push to ECR, Deploy to ASG
 
 ```yaml
-name: Deploy Serverless App
+name: Build and Deploy
 
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
-
-permissions:
-  id-token: write
-  contents: read
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install -r requirements-dev.txt
-      - run: pytest -m "not e2e" --cov=src --cov-report=xml
-      - uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: coverage.xml
-
-  deploy:
-    needs: test
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: us-east-1
-      - uses: aws-actions/setup-sam@v2
-      - run: sam build
-      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset
-```
-
-## GitHub Actions — CDK Deploy
-
-```yaml
-name: Deploy CDK Stack
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-permissions:
-  id-token: write
-  contents: read
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-      - run: npm ci
-      - run: npm run lint
-      - run: npm test -- --coverage
-
-  diff:
-    needs: test
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-      - run: npm ci
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: us-east-1
-      - run: npx cdk diff
-
-  deploy:
-    needs: test
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-      - run: npm ci
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: us-east-1
-      - run: npx cdk deploy --all --require-approval never
-```
-
-## GitHub Actions — Container (ECS)
-
-```yaml
-name: Build and Deploy to ECS
-
-on:
-  push:
     branches: [main]
 
 permissions:
@@ -124,299 +20,183 @@ permissions:
   contents: read
 
 env:
+  AWS_REGION: us-east-1
   ECR_REPOSITORY: my-app
-  ECS_CLUSTER: production
-  ECS_SERVICE: my-app-service
-  CONTAINER_NAME: app
 
 jobs:
-  deploy:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: test, POSTGRES_PASSWORD: test, POSTGRES_DB: test }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      TEST_DATABASE_URL: postgresql://test:test@localhost:5432/test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: pytest -m "not e2e" --cov=src --cov-report=xml
+
+  build-and-deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
     steps:
       - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
 
+      - name: Build and push image (tagged with git SHA)
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Run database migrations (expand)
+        run: ./scripts/migrate.sh   # alembic upgrade head / prisma migrate deploy
+
+      - name: Roll out to Auto Scaling Group
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Update the launch template to the new image tag, then start an instance refresh.
+          aws ec2 create-launch-template-version \
+            --launch-template-name my-app \
+            --source-version '$Latest' \
+            --launch-template-data "{\"UserData\":\"$(./scripts/render-userdata.sh $IMAGE_TAG | base64 -w0)\"}"
+          aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name my-app-asg \
+            --preferences '{"MinHealthyPercentage":90,"InstanceWarmup":120}'
+
+      - name: Smoke test
+        run: ./scripts/smoke.sh https://app.example.com
+```
+
+## GitHub Actions — Infrastructure (CDK) on PRs and main
+
+```yaml
+name: Infrastructure
+
+on:
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+
+permissions: { id-token: write, contents: read }
+
+jobs:
+  cdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "npm" }
+      - run: npm ci
+      - run: npm test            # CDK assertions
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: us-east-1
-
-      - uses: aws-actions/amazon-ecr-login@v2
-        id: login-ecr
-
-      - name: Build and push image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-      - name: Update ECS service
-        env:
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $ECS_SERVICE \
-            --force-new-deployment
+      - if: github.event_name == 'pull_request'
+        run: npx cdk diff
+      - if: github.ref == 'refs/heads/main'
+        run: npx cdk deploy --all --require-approval never
 ```
 
-## AWS CodePipeline (CloudFormation)
+## GitLab CI — Build, Push, Deploy
 
 ```yaml
-AWSTemplateFormatVersion: "2010-09-09"
-Description: CI/CD Pipeline for serverless application
-
-Resources:
-  Pipeline:
-    Type: AWS::CodePipeline::Pipeline
-    Properties:
-      Name: my-app-pipeline
-      RoleArn: !GetAtt PipelineRole.Arn
-      Stages:
-        - Name: Source
-          Actions:
-            - Name: GitHubSource
-              ActionTypeId:
-                Category: Source
-                Owner: ThirdParty
-                Provider: GitHub
-                Version: "1"
-              Configuration:
-                Owner: !Ref GitHubOwner
-                Repo: !Ref GitHubRepo
-                Branch: main
-              OutputArtifacts:
-                - Name: SourceOutput
-
-        - Name: Build
-          Actions:
-            - Name: BuildAndTest
-              ActionTypeId:
-                Category: Build
-                Owner: AWS
-                Provider: CodeBuild
-                Version: "1"
-              Configuration:
-                ProjectName: !Ref BuildProject
-              InputArtifacts:
-                - Name: SourceOutput
-              OutputArtifacts:
-                - Name: BuildOutput
-
-        - Name: Deploy
-          Actions:
-            - Name: DeployToProduction
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CloudFormation
-                Version: "1"
-              Configuration:
-                ActionMode: CREATE_UPDATE
-                StackName: my-app-production
-                TemplatePath: BuildOutput::packaged.yaml
-                RoleArn: !GetAtt DeployRole.Arn
-              InputArtifacts:
-                - Name: BuildOutput
-```
-
-## Best Practices
-
-- Use OIDC for AWS authentication (GitHub Actions id-token, GitLab CI OIDC) — no long-lived keys
-- Separate test/build/deploy stages for clear failure isolation
-- Run `cdk diff` on merge requests so reviewers see infrastructure changes
-- Use environment protection rules for production deploys
-- Pin action/image versions for supply chain security
-- Cache dependencies (npm, pip) to speed up builds
-- Run security scanning (Snyk, Trivy) in the pipeline
-
-## GitLab CI — SAM Serverless Deploy
-
-```yaml
-stages:
-  - test
-  - build
-  - deploy
-
-variables:
-  AWS_DEFAULT_REGION: us-east-1
-  SAM_CLI_TELEMETRY: "0"
-
-test:
-  stage: test
-  image: python:3.11-slim
-  script:
-    - pip install -r requirements-dev.txt
-    - pytest -m "not e2e" --cov=src --cov-report=xml
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: coverage.xml
-
-build:
-  stage: build
-  image: amazon/aws-sam-cli-build-image-python3.11
-  script:
-    - sam build
-  artifacts:
-    paths:
-      - .aws-sam/
-
-deploy-staging:
-  stage: deploy
-  image: amazon/aws-sam-cli-build-image-python3.11
-  environment:
-    name: staging
-  id_tokens:
-    AWS_TOKEN:
-      aud: https://gitlab.example.com
-  script:
-    - >
-      export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s"
-      $(aws sts assume-role-with-web-identity
-      --role-arn $AWS_DEPLOY_ROLE_ARN
-      --role-session-name "gitlab-${CI_PROJECT_ID}-${CI_PIPELINE_ID}"
-      --web-identity-token $AWS_TOKEN
-      --duration-seconds 3600
-      --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'
-      --output text))
-    - sam deploy --config-env staging --no-confirm-changeset
-  dependencies:
-    - build
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-
-deploy-production:
-  stage: deploy
-  image: amazon/aws-sam-cli-build-image-python3.11
-  environment:
-    name: production
-  id_tokens:
-    AWS_TOKEN:
-      aud: https://gitlab.example.com
-  script:
-    - >
-      export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s"
-      $(aws sts assume-role-with-web-identity
-      --role-arn $AWS_DEPLOY_ROLE_ARN
-      --role-session-name "gitlab-${CI_PROJECT_ID}-${CI_PIPELINE_ID}"
-      --web-identity-token $AWS_TOKEN
-      --duration-seconds 3600
-      --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'
-      --output text))
-    - sam deploy --config-env production --no-confirm-changeset
-  dependencies:
-    - build
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual
-```
-
-## GitLab CI — CDK Deploy
-
-```yaml
-stages:
-  - test
-  - diff
-  - deploy
-
-variables:
-  AWS_DEFAULT_REGION: us-east-1
-
-test:
-  stage: test
-  image: node:20-slim
-  script:
-    - npm ci
-    - npm run lint
-    - npm test -- --coverage
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - node_modules/
-
-cdk-diff:
-  stage: diff
-  image: node:20-slim
-  id_tokens:
-    AWS_TOKEN:
-      aud: https://gitlab.example.com
-  script:
-    - npm ci
-    - npx cdk diff
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-
-deploy-production:
-  stage: deploy
-  image: node:20-slim
-  environment:
-    name: production
-  id_tokens:
-    AWS_TOKEN:
-      aud: https://gitlab.example.com
-  script:
-    - npm ci
-    - npx cdk deploy --all --require-approval never
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual
-```
-
-## GitLab CI — Container (ECS)
-
-```yaml
-stages:
-  - build
-  - deploy
+stages: [test, build, migrate, deploy]
 
 variables:
   AWS_DEFAULT_REGION: us-east-1
   ECR_REPOSITORY: my-app
-  ECS_CLUSTER: production
-  ECS_SERVICE: my-app-service
 
-build-and-push:
+test:
+  stage: test
+  image: python:3.11-slim
+  services:
+    - name: postgres:16
+      alias: postgres
+  variables:
+    POSTGRES_USER: test
+    POSTGRES_PASSWORD: test
+    POSTGRES_DB: test
+    TEST_DATABASE_URL: postgresql://test:test@postgres:5432/test
+  script:
+    - pip install -r requirements-dev.txt
+    - ruff check .
+    - pytest -m "not e2e" --cov=src --cov-report=xml
+  artifacts:
+    reports:
+      coverage_report: { coverage_format: cobertura, path: coverage.xml }
+
+build:
   stage: build
   image: docker:24
-  services:
-    - docker:24-dind
+  services: ["docker:24-dind"]
   id_tokens:
-    AWS_TOKEN:
-      aud: https://gitlab.example.com
+    AWS_TOKEN: { aud: https://gitlab.example.com }
   before_script:
     - apk add --no-cache aws-cli
-    - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+    - aws ecr get-login-password | docker login --username AWS --password-stdin $ECR_REGISTRY
   script:
     - docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$CI_COMMIT_SHA .
     - docker push $ECR_REGISTRY/$ECR_REPOSITORY:$CI_COMMIT_SHA
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-deploy-ecs:
-  stage: deploy
-  image: amazon/aws-cli:latest
-  environment:
-    name: production
+migrate:
+  stage: migrate
+  image: python:3.11-slim
   id_tokens:
-    AWS_TOKEN:
-      aud: https://gitlab.example.com
+    AWS_TOKEN: { aud: https://gitlab.example.com }
   script:
-    - aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --force-new-deployment
+    - ./scripts/migrate.sh        # backward-compatible (expand) migrations
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual
+
+deploy-production:
+  stage: deploy
+  image: amazon/aws-cli:latest
+  environment: { name: production }
+  id_tokens:
+    AWS_TOKEN: { aud: https://gitlab.example.com }
+  script:
+    - aws ec2 create-launch-template-version --launch-template-name my-app --source-version '$Latest'
+      --launch-template-data "{\"UserData\":\"$(./scripts/render-userdata.sh $CI_COMMIT_SHA | base64 -w0)\"}"
+    - aws autoscaling start-instance-refresh --auto-scaling-group-name my-app-asg
+      --preferences '{"MinHealthyPercentage":90,"InstanceWarmup":120}'
+    - ./scripts/smoke.sh https://app.example.com
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual            # manual gate for production
 ```
 
-## GitLab CI Best Practices
+## Blue/Green Variant
 
-- Use `id_tokens` with OIDC for AWS authentication — no stored access keys
-- Use `rules:` instead of `only:/except:` (modern syntax)
-- Cache `node_modules/` and `.pip/` across pipelines
-- Use `when: manual` for production deploys
-- Use `dependencies:` to control artifact passing between stages
-- Store secrets in GitLab CI/CD Variables (Settings → CI/CD → Variables), never in `.gitlab-ci.yml`
-- Use `environment:` blocks for deployment tracking and rollback support
+For higher-risk releases, register the new image into a **green** target group, health-check and smoke-test it, then shift the ALB listener from blue → green (or weighted for canary). Roll back by shifting the listener back to blue. See `deploy-release/references/patterns.md` for the target-group mechanics.
+
+## Best Practices
+
+- **OIDC** for AWS auth (GitHub `id-token`, GitLab `id_tokens`) — no stored keys
+- Build the image **once**, tag with the git SHA, and promote that same image across environments
+- Run **expand** (backward-compatible) migrations before the rollout; contract in a later release
+- New instances must pass **ALB target group health checks** before old ones drain
+- Separate test / build / migrate / deploy stages for clear failure isolation
+- Manual gate (`environment` protection / `when: manual`) for production
+- Run `cdk diff` on PRs/MRs so reviewers see infrastructure changes
+- Pin action/image versions; scan images (Trivy/Snyk) before push
+- Store role ARNs and config in CI/CD variables, never in the YAML

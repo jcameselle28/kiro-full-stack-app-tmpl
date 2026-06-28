@@ -45,16 +45,20 @@ fileMatchPattern: "**/*.ts,**/*.tsx"
 - Separate `src/` from `infrastructure/` (app code vs IaC)
 - Use path aliases in tsconfig for clean imports
 
-## AWS-Specific TypeScript
-- Use AWS SDK v3 with modular imports (never import entire SDK)
-- Create typed clients with middleware: `const client = new DynamoDBClient({})`
-- Use `DynamoDBDocumentClient` for simplified DynamoDB operations
+## Web & AWS Integration (EC2 / RDS)
+- Use a Node web framework (Express/Fastify/NestJS) behind the ALB
+- Expose dedicated health and readiness endpoints for ALB target group checks
+- Access RDS through an ORM/query builder (Prisma/TypeORM) with a managed connection pool; never open a connection per request
+- Manage schema changes with migrations (Prisma Migrate / TypeORM migrations) checked into the repo
+- Always use parameterized queries / ORM bindings — never string-interpolate SQL
+- Use AWS SDK v3 with modular imports (never import the entire SDK)
+- Use the default credential provider chain (EC2 instance profile) — never hardcode credentials
+- Load secrets and config from Secrets Manager / SSM Parameter Store, not from committed files
 - Handle SDK errors with `try/catch` checking `error.name` or `error.$metadata`
-- Use `@aws-lambda-powertools/logger`, `@aws-lambda-powertools/tracer`
 
 ## Testing
 - Use Vitest (preferred) or Jest as test framework
-- Use `aws-sdk-client-mock` for mocking AWS SDK v3 clients
+- Run integration tests against a real local database (Docker Postgres/MySQL); use `aws-sdk-client-mock` for auxiliary AWS service clients (S3, Secrets Manager)
 - Structure: `describe` → `it` with clear behavior descriptions
-- Mock at the boundary (SDK clients), test business logic in isolation
+- Test business logic in isolation; mock at the boundary
 - Target 80%+ coverage on business logic

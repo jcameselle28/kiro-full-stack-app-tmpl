@@ -1,68 +1,19 @@
 {
-  "_comment": "To enable an MCP server, change its 'disabled' flag from true to false. The server will auto-connect without restarting Kiro. Set it back to true when done to save tokens.",
+  "_comment": "Single AWS MCP entry via the MCP Proxy for AWS (mcp-proxy-for-aws), which signs requests with your local AWS credentials (SigV4) and connects to the managed AWS MCP Server. To enable, change 'disabled' to false. Pinned to a specific proxy version on purpose — avoid '@latest'. '--read-only' blocks mutating tools; remove it when you need the agent to provision/modify AWS resources. Set the endpoint/region to your preferred AWS region. Requires 'uv' and valid AWS credentials. See docs/mcp-servers.md.",
   "mcpServers": {
-    "aws-documentation": {
+    "aws": {
       "command": "uvx",
-      "args": ["awslabs.aws-documentation-mcp-server@latest"],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR"
-      },
-      "disabled": true,
-      "autoApprove": []
-    },
-    "aws-pricing": {
-      "command": "uvx",
-      "args": ["awslabs.aws-pricing-mcp-server@latest"],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR"
-      },
-      "disabled": true,
-      "autoApprove": []
-    },
-    "billing-cost-management": {
-      "command": "uvx",
-      "args": ["awslabs.billing-cost-management-mcp-server@latest"],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR"
-      },
-      "disabled": true,
-      "autoApprove": []
-    },
-    "aws-iac": {
-      "command": "uvx",
-      "args": ["awslabs.aws-iac-mcp-server@latest"],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR"
-      },
-      "disabled": true,
-      "autoApprove": []
-    },
-    "aws-serverless": {
-      "command": "uvx",
-      "args": ["awslabs.sam-mcp-server@latest"],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR"
-      },
-      "disabled": true,
-      "autoApprove": []
-    },
-    "aws-lambda-tools": {
-      "command": "uvx",
-      "args": ["awslabs.lambda-tool-mcp-server@latest"],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR"
-      },
-      "disabled": true,
-      "autoApprove": []
-    },
-    "aws-cloudwatch": {
-      "command": "uvx",
-      "args": ["awslabs.cloudwatch-mcp-server@latest"],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR"
-      },
+      "args": [
+        "mcp-proxy-for-aws@1.6.3",
+        "https://aws-mcp.us-east-1.api.aws/mcp",
+        "--read-only",
+        "--region",
+        "us-east-1"
+      ],
+      "env": {},
       "disabled": true,
       "autoApprove": []
     }
   }
 }
+

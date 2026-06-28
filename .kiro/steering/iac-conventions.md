@@ -1,6 +1,6 @@
 ---
 inclusion: fileMatch
-fileMatchPattern: "**/*.tf,**/template.yaml,**/template.yml,**/cdk.json,**/samconfig.toml,**/*.template.json"
+fileMatchPattern: "**/*.tf,**/cdk.json,**/*.template.json,**/*.template.yaml"
 ---
 
 # Infrastructure as Code Conventions
@@ -8,84 +8,62 @@ fileMatchPattern: "**/*.tf,**/template.yaml,**/template.yml,**/cdk.json,**/samco
 ## General Principles
 - Infrastructure is code — same review, testing, and versioning standards apply
 - Prefer declarative over imperative
-- One stack/module per bounded context or service
-- Separate stateful resources (databases, S3) from stateless (Lambda, ECS)
-- Never hardcode account IDs, regions, or ARNs — use parameters/variables
+- One stack/module per bounded context (network, data, app, edge)
+- Separate stateful resources (RDS, S3) from stateless (EC2/ASG, ALB) so they can be replaced independently
+- Never hardcode account IDs, regions, or ARNs — use parameters/variables/outputs
 
 ## Naming Conventions
 
 ### Resources
-- Pattern: `{project}-{environment}-{service}-{resource}`
-- Example: `myapp-prod-api-lambda`, `myapp-dev-orders-table`
-- Use lowercase with hyphens (no underscores in resource names)
+- Pattern: `{project}-{environment}-{component}`
+- Example: `myapp-prod-alb`, `myapp-dev-rds`
+- Use lowercase with hyphens
 
 ### Tags (mandatory on all resources)
 - `Environment`: prod | staging | dev
-- `Team`: owning team name
-- `Application`: application or service name
-- `ManagedBy`: cdk | terraform | sam | cloudformation
-- `CostCenter`: billing allocation code
+- `Application`: {project}
+- `ManagedBy`: cdk | terraform | cloudformation
+- `Owner`: owning team
 
 ### Files and Modules
-- CDK: one stack per file, named `{service}-stack.ts`
+- CDK: one stack per file, named `{component}-stack.ts` (e.g., `network-stack.ts`, `app-stack.ts`)
 - Terraform: `main.tf`, `variables.tf`, `outputs.tf`, `providers.tf` per module
-- SAM: `template.yaml` at project root, nested stacks in `infrastructure/`
+
+## Reference Architecture (AWS web app)
+Provision these layers as distinct stacks/modules:
+- **Network**: VPC, public subnets (ALB), private subnets (EC2 + RDS), NAT, security groups
+- **Data**: RDS (Multi-AZ in prod), subnet group, parameter group, automated backups
+- **App**: EC2 launch template + Auto Scaling Group, target group, instance role (least privilege)
+- **Edge**: ALB (HTTPS listener, ACM cert), CloudFront distribution, AWS WAF web ACL
+- **DNS/Certs**: Route 53 records, ACM certificates
 
 ## CDK Conventions
 - Use L2 constructs (higher-level) over L1 (Cfn*) when available
 - Define props interfaces for all custom constructs
 - Use `cdk.Tags.of(this).add()` for consistent tagging
-- Enable removal policies explicitly (RETAIN for stateful, DESTROY for dev)
+- Set removal policies explicitly (RETAIN for RDS/S3, DESTROY for dev-only resources)
 - Use `cdk.CfnOutput` for cross-stack references
 - Run `cdk diff` before every deploy
-
-## SAM Conventions
-- Use `Globals` section for shared Lambda configuration
-- Define `Parameters` for environment-specific values
-- Use `AWS::Serverless::Function` over raw `AWS::Lambda::Function`
-- Include `Metadata` for build configuration
-- Use `samconfig.toml` for environment-specific deploy settings
 
 ## Terraform Conventions
 - Use modules for reusable infrastructure patterns
 - Lock provider versions in `versions.tf`
-- Use `terraform fmt` and `terraform validate` in CI
+- Run `terraform fmt` and `terraform validate` in CI
 - Remote state in S3 with DynamoDB locking
 - Use workspaces or directory structure for environments
 - Output all resource IDs and ARNs needed by other modules
 
 ## Security Requirements
-- Encryption at rest: enabled on all storage resources
-- Encryption in transit: TLS/HTTPS enforced
-- No public access unless explicitly justified and documented
-- Least-privilege IAM: scope to exact actions and resource ARNs
-- No secrets in templates — use SSM Parameter Store or Secrets Manager references
-- Enable logging: CloudTrail, VPC Flow Logs, access logs
+- Encryption at rest enabled on RDS, S3, and EBS volumes
+- TLS/HTTPS enforced at ALB and CloudFront (ACM certificates)
+- RDS in private subnets; no public accessibility
+- Security groups scoped to minimum ports/sources — no `0.0.0.0/0` on DB or admin ports
+- AWS WAF attached to CloudFront/ALB with managed + rate-based rules
+- Least-privilege EC2 instance role — scope to exact actions and resource ARNs
+- No secrets in templates — reference SSM Parameter Store or Secrets Manager
+- Enable access logs (ALB, CloudFront) and database logging
 
 ## Environment Strategy
-- `dev`: permissive, auto-deploy on merge, DESTROY removal policies
+- `dev`: permissive, single-AZ, DESTROY removal policies
 - `staging`: mirrors prod config, manual approval for deploy
-- `prod`: strict, change sets reviewed, RETAIN removal policies, multi-AZ
-
-## CI/CD Pipeline Conventions (GitLab CI)
-
-### Pipeline Structure
-```yaml
-stages:
-  - validate    # lint, format check, template validation
-  - test        # unit tests, CDK assertions, security scan
-  - build       # sam build, cdk synth, docker build
-  - diff        # cdk diff / changeset preview (merge requests only)
-  - deploy-dev  # auto on merge to main
-  - deploy-stg  # auto or manual gate
-  - deploy-prod # manual gate, requires approval
-```
-
-### GitLab CI Rules
-- Use `rules:` syntax (not `only:/except:`)
-- Use `id_tokens` with OIDC for AWS authentication — no stored access keys
-- Use `environment:` blocks for deployment tracking
-- Use `when: manual` for production deployments
-- Cache `node_modules/`, `.pip/`, `.aws-sam/` across pipelines
-- Store AWS role ARNs and config in GitLab CI/CD Variables (Settings → CI/CD → Variables)
-- Use `dependencies:` to control artifact flow between stages
+- `prod`: strict, change sets reviewed, RETAIN removal policies, Multi-AZ RDS

@@ -1,6 +1,6 @@
 ---
 name: testing-ci
-description: This skill provides testing patterns, mocking strategies for AWS services, and CI/CD pipeline templates. Covers pytest, Jest/Vitest, moto, aws-sdk-client-mock, GitHub Actions, and CodePipeline. Triggers on requests about testing, mocking, CI/CD, coverage, or deployment pipelines.
+description: This skill provides testing patterns, mocking strategies, and CI/CD pipeline templates for web applications on AWS. Covers pytest, Jest/Vitest, local database integration testing, aws-sdk-client-mock, GitHub Actions, GitLab CI, and CodePipeline. Triggers on requests about testing, mocking, CI/CD, coverage, or deployment pipelines.
 ---
 
 # Testing & CI/CD Skill
@@ -15,34 +15,39 @@ This skill provides testing patterns, mocking strategies, and CI/CD pipeline tem
 
 ## Testing Philosophy
 
-### Test Pyramid for AWS Apps
-- **Unit tests (70%)** — Business logic, pure functions, no AWS calls
-- **Integration tests (20%)** — AWS service interactions with mocks (moto, localstack)
-- **E2E tests (10%)** — Deployed stack, real AWS services, smoke tests
+### Test Pyramid for Web Apps on AWS
+- **Unit tests (70%)** — Business logic, pure functions, no I/O
+- **Integration tests (20%)** — Database access and AWS service interactions (real local DB; mocks for auxiliary services)
+- **E2E tests (10%)** — Deployed stack behind the ALB, smoke tests against real endpoints
 
 ### What to Test
 - Business logic in isolation (service layer)
-- AWS SDK call parameters (are you sending the right request?)
-- Error handling paths (what happens when DynamoDB throttles?)
+- Data access / repository layer against a real local database
+- API request/response contracts, including validation and error paths
+- Error handling paths (what happens when the DB is unavailable or a query times out?)
 - Input validation and edge cases
-- IAM policy correctness (via integration tests)
+- AuthN/AuthZ enforcement on protected endpoints
 
 ### What NOT to Unit Test
 - AWS SDK internals (trust the SDK)
-- Infrastructure provisioning (test with CDK assertions instead)
+- ORM/driver internals
 - Third-party library behavior
 
 ## Framework Selection
 
-| Language | Framework | AWS Mocking |
+| Language | Framework | DB / AWS Mocking |
 |---|---|---|
-| Python | pytest | moto, localstack |
-| TypeScript | Vitest (preferred) or Jest | aws-sdk-client-mock |
-| Go | go test + testify | aws-sdk-go-v2/service/*/mock |
-| CDK | CDK assertions | Template.fromStack() |
+| Python | pytest | Docker Postgres/MySQL for DB; moto for auxiliary AWS services |
+| TypeScript | Vitest (preferred) or Jest | Docker DB; aws-sdk-client-mock for AWS SDK v3 |
+| IaC (CDK) | CDK assertions | Template.fromStack() |
 
 ## Coverage Targets
 - Business logic: 80%+
-- Lambda handlers: 70%+
+- API / controller layer: 70%+
 - Infrastructure (CDK): assertions on critical resources
 - Overall project: 75%+ (don't chase 100%)
+
+## References
+- `references/pytest-patterns.md` — Python: local-DB integration, service/API tests, moto for auxiliary services
+- `references/jest-patterns.md` — TypeScript: Vitest/Jest, real-DB repository tests, supertest API tests, component tests
+- `references/cicd-templates.md` — GitHub Actions & GitLab CI: build → ECR → migrate → roll out to EC2/ASG

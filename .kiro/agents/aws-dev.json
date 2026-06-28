@@ -1,45 +1,30 @@
 {
   "name": "aws-dev",
-  "description": "AWS application development sub-agent. Helps write, review, and refactor application code for AWS-compatible stacks: Python/Boto3, Node.js/AWS SDK, TypeScript/CDK, serverless (SAM/SST), containerized apps (ECS/EKS), and IaC patterns.",
+  "description": "Application development agent for full-stack web apps running on AWS (EC2, RDS, ALB, CloudFront, WAF). Helps write, review, and refactor application code in Python and TypeScript/Node.js, plus the IaC that provisions the app.",
   "prompt": "file://./aws-dev-prompt.md",
   "mcpServers": {
-    "aws-iac": {
+    "aws": {
       "command": "uvx",
-      "args": ["awslabs.aws-iac-mcp-server@latest"],
-      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
-    },
-    "serverless": {
-      "command": "uvx",
-      "args": ["awslabs.sam-mcp-server@latest"],
-      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
-    },
-    "lambda-tools": {
-      "command": "uvx",
-      "args": ["awslabs.lambda-tool-mcp-server@latest"],
-      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
-    },
-    "aws-documentation": {
-      "command": "uvx",
-      "args": ["awslabs.aws-documentation-mcp-server@latest"],
-      "env": { "FASTMCP_LOG_LEVEL": "ERROR" }
+      "args": [
+        "mcp-proxy-for-aws@1.6.3",
+        "https://aws-mcp.us-east-1.api.aws/mcp",
+        "--read-only",
+        "--region",
+        "us-east-1"
+      ],
+      "env": {}
     }
   },
   "tools": [
     "read",
     "write",
     "shell",
-    "@aws-iac",
-    "@serverless",
-    "@lambda-tools",
-    "@aws-documentation"
+    "@aws"
   ],
   "allowedTools": [
     "read",
     "write",
-    "@aws-iac",
-    "@serverless",
-    "@lambda-tools",
-    "@aws-documentation"
+    "@aws"
   ],
   "toolsSettings": {
     "write": {
@@ -52,6 +37,7 @@
         "scripts/**",
         "*.py",
         "*.ts",
+        "*.tsx",
         "*.js",
         "*.json",
         "*.yaml",
@@ -66,10 +52,10 @@
   },
   "resources": [
     "skill://../skills/aws-dev/SKILL.md",
-    "skill://../skills/aws-cli/SKILL.md",
+    "skill://../skills/testing-ci/SKILL.md",
     "file://src/**",
     "file://lib/**",
     "file://infrastructure/**"
   ],
-  "model": "claude-opus-4.6"
+  "model": "claude-sonnet-4-5"
 }

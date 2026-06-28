@@ -1,153 +1,124 @@
-# Jest/Vitest Patterns for AWS
+# Vitest / Jest Patterns (Web App on RDS)
 
-## Setup with aws-sdk-client-mock
+Test business logic in isolation, the data layer against a **real local database**, and API routes through the app. Mock only auxiliary AWS SDK clients (S3, Secrets Manager).
+
+## Setup
 
 ```typescript
 // tests/setup.ts
 import { mockClient } from "aws-sdk-client-mock";
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { S3Client } from "@aws-sdk/client-s3";
+import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 
-export const ddbMock = mockClient(DynamoDBDocumentClient);
 export const s3Mock = mockClient(S3Client);
+export const secretsMock = mockClient(SecretsManagerClient);
 
 beforeEach(() => {
-  ddbMock.reset();
   s3Mock.reset();
+  secretsMock.reset();
 });
 ```
 
-## Testing Lambda Handlers
+## Service-Layer Unit Tests (no I/O)
 
 ```typescript
-import { handler } from "../src/handlers/order";
-import { ddbMock } from "./setup";
-import { PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
+import { describe, it, expect } from "vitest";
+import { InvoiceService } from "../src/services/invoice-service";
 
-describe("Order Handler", () => {
-  it("creates an order successfully", async () => {
-    ddbMock.on(PutCommand).resolves({});
+describe("InvoiceService", () => {
+  const service = new InvoiceService();
 
-    const event = {
-      body: JSON.stringify({ productId: "prod-123", quantity: 2 }),
-      requestContext: { authorizer: { claims: { sub: "user-456" } } },
-    };
-
-    const response = await handler(event as any, {} as any);
-
-    expect(response.statusCode).toBe(201);
-    expect(JSON.parse(response.body)).toHaveProperty("orderId");
+  it("calculates total with discount", () => {
+    const items = [{ price: 100, quantity: 2 }, { price: 50, quantity: 1 }];
+    expect(service.calculateTotal(items, 10)).toBe(225); // (200 + 50) * 0.9
   });
 
-  it("returns 400 on invalid input", async () => {
-    const event = { body: JSON.stringify({}) };
-
-    const response = await handler(event as any, {} as any);
-
-    expect(response.statusCode).toBe(400);
-  });
-
-  it("returns 500 when DynamoDB fails", async () => {
-    ddbMock.on(PutCommand).rejects(new Error("Service unavailable"));
-
-    const event = {
-      body: JSON.stringify({ productId: "prod-123", quantity: 1 }),
-      requestContext: { authorizer: { claims: { sub: "user-456" } } },
-    };
-
-    const response = await handler(event as any, {} as any);
-
-    expect(response.statusCode).toBe(500);
+  it("throws on empty items", () => {
+    expect(() => service.calculateTotal([], 0)).toThrow("at least one item");
   });
 });
 ```
 
-## Testing Service Layer
+## Repository Tests (real DB via Prisma)
 
 ```typescript
-import { OrderService } from "../src/services/order-service";
+import { PrismaClient } from "@prisma/client";
 
-describe("OrderService", () => {
-  const service = new OrderService();
+const prisma = new PrismaClient({ datasources: { db: { url: process.env.TEST_DATABASE_URL } } });
 
-  describe("calculateTotal", () => {
-    it("calculates total with discount", () => {
-      const items = [
-        { price: 100, quantity: 2 },
-        { price: 50, quantity: 1 },
-      ];
+beforeEach(async () => {
+  await prisma.$executeRaw`TRUNCATE TABLE accounts RESTART IDENTITY CASCADE`;
+});
 
-      const total = service.calculateTotal(items, 10);
+describe("AccountRepository", () => {
+  it("creates and fetches an account", async () => {
+    const repo = new AccountRepository(prisma);
+    const created = await repo.create({ name: "Acme", email: "ops@acme.test" });
+    const fetched = await repo.get(created.id);
+    expect(fetched?.email).toBe("ops@acme.test");
+  });
 
-      expect(total).toBe(225); // (200 + 50) * 0.9
-    });
-
-    it("throws on empty items", () => {
-      expect(() => service.calculateTotal([], 0)).toThrow("at least one item");
-    });
+  it("enforces unique email", async () => {
+    const repo = new AccountRepository(prisma);
+    await repo.create({ name: "A", email: "dup@acme.test" });
+    await expect(repo.create({ name: "B", email: "dup@acme.test" })).rejects.toThrow();
   });
 });
 ```
 
-## Mocking Specific SDK Responses
+## API Route Tests (supertest)
 
 ```typescript
-import { GetCommand } from "@aws-sdk/lib-dynamodb";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
-import { sdkStreamMixin } from "@smithy/util-stream";
-import { Readable } from "stream";
+import request from "supertest";
+import { app } from "../src/app";
 
-// DynamoDB - item found
-ddbMock.on(GetCommand, { TableName: "orders", Key: { PK: "ORDER#123" } }).resolves({
-  Item: { PK: "ORDER#123", status: "completed", total: 99.99 },
+describe("POST /v1/accounts", () => {
+  it("creates an account", async () => {
+    const res = await request(app)
+      .post("/v1/accounts")
+      .send({ name: "Acme", email: "ops@acme.test" });
+    expect(res.status).toBe(201);
+    expect(res.body.email).toBe("ops@acme.test");
+  });
+
+  it("returns a validation error envelope", async () => {
+    const res = await request(app).post("/v1/accounts").send({ name: "" });
+    expect(res.status).toBe(422);
+    expect(res.body.error.code).toBe("validation_error");
+  });
+
+  it("requires auth", async () => {
+    const res = await request(app).get("/v1/accounts");
+    expect(res.status).toBe(401);
+  });
 });
-
-// DynamoDB - item not found
-ddbMock.on(GetCommand, { TableName: "orders", Key: { PK: "ORDER#999" } }).resolves({
-  Item: undefined,
-});
-
-// S3 - file content
-const stream = sdkStreamMixin(Readable.from([Buffer.from('{"key": "value"}')]));
-s3Mock.on(GetObjectCommand).resolves({ Body: stream });
 ```
 
-## CDK Testing with Assertions
+## Mocking Auxiliary AWS Clients
 
 ```typescript
-import * as cdk from "aws-cdk-lib";
-import { Template, Match } from "aws-cdk-lib/assertions";
-import { MyStack } from "../lib/my-stack";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { s3Mock } from "./setup";
 
-describe("MyStack", () => {
-  const app = new cdk.App();
-  const stack = new MyStack(app, "TestStack");
-  const template = Template.fromStack(stack);
+it("requests a presigned upload URL", async () => {
+  s3Mock.on(PutObjectCommand).resolves({});
+  const url = await new StorageService("uploads").uploadUrl("docs/a.pdf");
+  expect(url).toContain("uploads");
+});
+```
 
-  it("creates a DynamoDB table with PAY_PER_REQUEST", () => {
-    template.hasResourceProperties("AWS::DynamoDB::Table", {
-      BillingMode: "PAY_PER_REQUEST",
-      SSESpecification: { SSEEnabled: true },
-    });
-  });
+## Frontend Component Tests (React Testing Library)
 
-  it("creates a Lambda with X-Ray tracing", () => {
-    template.hasResourceProperties("AWS::Lambda::Function", {
-      TracingConfig: { Mode: "Active" },
-      Timeout: Match.anyValue(),
-    });
-  });
+```typescript
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { AccountForm } from "../src/features/accounts/AccountForm";
 
-  it("has no public S3 buckets", () => {
-    template.hasResourceProperties("AWS::S3::Bucket", {
-      PublicAccessBlockConfiguration: {
-        BlockPublicAcls: true,
-        BlockPublicPolicy: true,
-        IgnorePublicAcls: true,
-        RestrictPublicBuckets: true,
-      },
-    });
-  });
+it("shows a validation message for an invalid email", async () => {
+  render(<AccountForm onSubmit={vi.fn()} />);
+  await userEvent.type(screen.getByLabelText(/email/i), "not-an-email");
+  await userEvent.click(screen.getByRole("button", { name: /save/i }));
+  expect(await screen.findByText(/valid email/i)).toBeInTheDocument();
 });
 ```
 
@@ -160,15 +131,16 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     globals: true,
-    environment: "node",
+    environment: "node",          // "jsdom" for component tests
     setupFiles: ["./tests/setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],
-      include: ["src/**/*.ts"],
+      include: ["src/**/*.ts", "src/**/*.tsx"],
       exclude: ["src/**/*.d.ts", "src/**/index.ts"],
       thresholds: { lines: 80, functions: 80, branches: 75 },
     },
   },
 });
 ```
+Provide `TEST_DATABASE_URL` (a local Postgres/MySQL via docker compose) in CI before running repository/API tests.

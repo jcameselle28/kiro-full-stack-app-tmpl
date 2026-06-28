@@ -2,7 +2,7 @@
 
 ## Project-Specific Configuration
 
-The most important customization is telling the agent about your project.
+The most important customization is telling the agent about your project. This template ships a blank `project-config-template.md`; create your project's config from it:
 
 ### Step 1: Create your project config
 
@@ -86,37 +86,6 @@ description: What this skill does and when it should activate.
 Instructions and patterns...
 ```
 
-## Adding Hooks
-
-### Via Kiro IDE
-Use the command palette: "Open Kiro Hook UI"
-
-### Manually
-Create a `.kiro.hook` file in `.kiro/hooks/`:
-
-```json
-{
-  "name": "My Hook",
-  "version": "1.0.0",
-  "when": {
-    "type": "fileEdited",
-    "patterns": ["*.py"]
-  },
-  "then": {
-    "type": "runCommand",
-    "command": "ruff check ${file}"
-  }
-}
-```
-
-### Available event types
-- `fileEdited`, `fileCreated`, `fileDeleted` — file system events
-- `promptSubmit` — when a message is sent
-- `agentStop` — when agent execution completes
-- `preToolUse`, `postToolUse` — before/after tool execution
-- `preTaskExecution`, `postTaskExecution` — before/after spec tasks
-- `userTriggered` — manual button click
-
 ## Modifying Agent Prompts
 
 Edit the `-prompt.md` files in `.kiro/agents/` to change agent behavior:
@@ -132,9 +101,9 @@ The `.json` files control tools, MCP servers, and permissions — edit these to 
 
 The setup is modular. Delete what you don't use:
 
-- Don't use Python? Delete `.kiro/steering/python-standards.md`
-- Don't need cost analysis? Delete the `aws-cost-explorer` skill
-- Don't want auto-linting? Delete the lint hooks from `.kiro/hooks/`
+- Building only in Python? Delete `.kiro/steering/typescript-standards.md`
+- Building only in TypeScript? Delete `.kiro/steering/python-standards.md`
+- Not writing IaC in this repo? Delete `.kiro/steering/iac-conventions.md`
 
 Nothing will break — each component is independent.
 
@@ -150,8 +119,8 @@ Things to keep in mind:
 ## CI/CD Integration
 
 The testing-ci skill includes pipeline templates for:
-- **GitLab CI** (primary) — `.gitlab-ci.yml` for SAM, CDK, and container deployments
-- **GitHub Actions** — workflow files for SAM, CDK, and ECS
+- **GitLab CI** — `.gitlab-ci.yml` for container build/push to ECR and EC2/ECS deployment
+- **GitHub Actions** — workflow files for build, test, and deploy
 - **AWS CodePipeline** — CloudFormation-based pipeline definition
 
 All templates use OIDC for AWS authentication — no long-lived access keys. See `.kiro/skills/testing-ci/references/cicd-templates.md` for the full set.

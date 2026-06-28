@@ -1,65 +1,69 @@
 ---
-inclusion: always
+inclusion: manual
 ---
 
 # MCP Server Management Instructions
+
+This template uses a single AWS MCP entry — the **MCP Proxy for AWS** (`mcp-proxy-for-aws`) — which signs requests with local AWS credentials and connects to the managed **AWS MCP Server**. It replaces the older per-service AWS Labs servers.
 
 ## Quick Reference Commands (for Kiro chat)
 
 | What you want | What to say |
 |---|---|
-| Enable AWS Docs MCP | "Enable the AWS docs MCP" |
-| Disable AWS Docs MCP | "Disable the AWS docs MCP" |
-| Enable AWS Pricing MCP | "Enable the AWS pricing MCP" |
-| Disable AWS Pricing MCP | "Disable the AWS pricing MCP" |
-| Enable Billing & Cost Mgmt MCP | "Enable the billing cost management MCP" |
-| Disable Billing & Cost Mgmt MCP | "Disable the billing cost management MCP" |
-| Enable AWS IaC MCP | "Enable the AWS IaC MCP" |
-| Disable AWS IaC MCP | "Disable the AWS IaC MCP" |
-| Enable AWS Serverless MCP | "Enable the AWS serverless MCP" |
-| Disable AWS Serverless MCP | "Disable the AWS serverless MCP" |
-| Enable AWS Lambda Tools MCP | "Enable the AWS Lambda tools MCP" |
-| Disable AWS Lambda Tools MCP | "Disable the AWS Lambda tools MCP" |
-| Enable AWS CloudWatch MCP | "Enable the AWS CloudWatch MCP" |
-| Disable AWS CloudWatch MCP | "Disable the AWS CloudWatch MCP" |
+| Enable the AWS MCP | "Enable the AWS MCP" |
+| Disable the AWS MCP | "Disable the AWS MCP" |
 | Check MCP status | "What MCP servers are enabled?" |
 
 ## How It Works
 
-- MCP servers are defined in `.kiro/settings/mcp.json`
-- Each server has a `"disabled"` flag: `true` = off, `false` = on
-- Kiro auto-connects/disconnects when the config changes — no restart needed
-- Keep servers disabled when not in use to avoid unnecessary token consumption
+- The server is defined in `.kiro/settings/mcp.json` under the name `aws`.
+- It has a `"disabled"` flag: `true` = off, `false` = on.
+- When enabled, every call is **SigV4-signed with your AWS credentials** — valid credentials are required.
+- Kiro auto-connects/disconnects when the config changes — no restart needed.
+- Keep it disabled when not in use to avoid unnecessary token consumption.
 
 ## Manual Toggle
 
 Edit `.kiro/settings/mcp.json` and change the `disabled` flag:
 
 ```json
-"disabled": true   ← server is OFF (not consuming tokens)
-"disabled": false  ← server is ON (active and available)
+"disabled": true   // server is OFF (not consuming tokens)
+"disabled": false  // server is ON (active; uses your AWS credentials)
 ```
 
-## Currently Defined Servers
+## Currently Defined Server
 
 | Server | Command | Purpose |
 |---|---|---|
-| aws-documentation | `uvx awslabs.aws-documentation-mcp-server@latest` | Search and retrieve AWS documentation |
-| aws-pricing | `uvx awslabs.aws-pricing-mcp-server@latest` | Real-time AWS pricing, cost estimates, and IaC cost analysis |
-| billing-cost-management | `uvx awslabs.billing-cost-management-mcp-server@latest` | Historical spend analysis, forecasting, budgets, anomaly detection, Savings Plans, Compute Optimizer |
-| aws-iac | `uvx awslabs.aws-iac-mcp-server@latest` | CDK and CloudFormation guidance, construct patterns, best practices |
-| aws-serverless | `uvx awslabs.sam-mcp-server@latest` | SAM CLI lifecycle — build, deploy, local invoke, logs |
-| aws-lambda-tools | `uvx awslabs.lambda-tool-mcp-server@latest` | Execute Lambda functions as AI tools, test invocations |
-| aws-cloudwatch | `uvx awslabs.cloudwatch-mcp-server@latest` | Metrics, alarms, logs analysis, operational troubleshooting |
+| `aws` | `uvx mcp-proxy-for-aws@1.6.3 https://aws-mcp.us-east-1.api.aws/mcp --read-only --region us-east-1` | AWS documentation, IaC/CDK/CloudFormation guidance, and multi-service AWS access through one IAM-secured endpoint |
+
+## Read-Only vs. Write Access
+
+- The server ships with `--read-only`, so the agent can read and advise but **cannot mutate AWS resources**.
+- To allow provisioning/modifying resources (e.g. deploying infrastructure), remove `--read-only` from the args. Do this deliberately and pair it with least-privilege IAM.
+
+## Multi-Account / Multi-Role
+
+To work across accounts without restarting, set profiles via the `env` block:
+
+```json
+"env": { "AWS_MCP_PROXY_PROFILES": "prod-readonly dev staging" }
+```
+
+The first profile is the default; the agent can route a call through another by passing the `aws_profile` parameter.
+
+## Version Pinning
+
+Pin to a specific version (`mcp-proxy-for-aws@1.6.3`, the current latest from the official `aws-mcp-team` PyPI project), not `@latest` — `@latest` may introduce breaking changes. Bump deliberately after checking the release. Note: there is no official `2.x`; treat any `2.x` "latest" as a look-alike until verified against `github.com/aws/mcp-proxy-for-aws`.
 
 ## Adding New MCP Servers
 
-Add a new entry under `mcpServers` in `.kiro/settings/mcp.json`:
+Add another entry under `mcpServers` in `.kiro/settings/mcp.json`:
 
 ```json
 "server-name": {
   "command": "uvx",
-  "args": ["package-name@latest"],
+  "args": ["package-name@<version>"],
   "env": {},
   "disabled": true,
   "autoApprove": []
@@ -68,5 +72,7 @@ Add a new entry under `mcpServers` in `.kiro/settings/mcp.json`:
 
 ## Prerequisites
 
-- `uv` must be installed (`brew install uv`) — provides the `uvx` command
-- AWS credentials must be valid for AWS-related MCP servers
+- `uv` installed (`brew install uv`) — provides the `uvx` command
+- Valid AWS credentials (`aws configure` / `aws configure sso` / instance role); verify with `aws sts get-caller-identity`
+
+See `docs/mcp-servers.md` for the full guide.

@@ -1,49 +1,42 @@
----
-inclusion: always
----
-
 # Output and Reporting Format
 
 Standardize how results are presented across all operations.
 
 ## Status Indicators
-- ✅ Success / healthy / compliant
-- ⚠️ Warning / degraded / needs attention
-- ❌ Failure / critical / non-compliant
+- ✅ Success / passing / done
+- ⚠️ Warning / needs attention
+- ❌ Failure / error / blocked
 - 🔄 In progress / pending
 
-## Operation Reports
+## Change Reports
 
-After any mutation or state change, report:
+After any code or config change, report:
 ```
-[status] Operation Summary
+[status] Summary
 - Action: what was done
-- Resource: affected resource identifier
-- Previous state: before the change
-- Current state: after the change
-- Rollback: how to revert if needed
+- Files: affected files
+- Verification: build/test/lint result
+- Follow-ups: anything left to do (if any)
 ```
 
-## Query Results
-- Use tables for structured data (instances, costs, resources)
-- Include column headers: ID, Name/Tag, Status, Type, Region
-- Sort by most relevant field (status for health checks, cost for billing)
-- Show totals/summaries at the bottom when applicable
+## Code & Commands
+- Use code blocks for code, commands, and config
+- Specify the language on every fenced block
+- Keep commands copy-pasteable; avoid placeholders unless necessary
 
-## Cost Reports
-- Always show amounts in USD with 2 decimal places
-- Include percentage of total when showing breakdowns
-- Flag items above a reasonable threshold with ⚠️
-- Show date range covered by the report
+## Structured Data
+- Use tables for lists of items (endpoints, env vars, dependencies)
+- Include clear column headers
+- Sort by the most relevant field
+- Show totals/summaries at the bottom when applicable
 
 ## Error Reports
 - Show the exact error message
-- Identify probable cause
+- Identify the probable cause
 - Suggest 2-3 actionable next steps
-- Include relevant AWS documentation links when helpful
+- Link to relevant documentation when helpful
 
 ## General Rules
 - Keep output concise, no filler text
-- Use code blocks for CLI commands and JSON
-- Group related information together
 - Lead with the most important information first
+- Group related information together

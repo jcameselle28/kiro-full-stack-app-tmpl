@@ -1,1 +1,73 @@
+# ---- OS ----
 .DS_Store
+Thumbs.db
+
+# ---- Editors / IDEs ----
+.idea/
+*.swp
+*.swo
+# Keep shared .vscode settings tracked; ignore personal/local overrides
+.vscode/*.local
+*.code-workspace
+
+# ---- Secrets & environment ----
+# Never commit secrets — load them from Secrets Manager / SSM at runtime.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+.aws/
+credentials
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+
+# ---- Node / TypeScript ----
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+*.tsbuildinfo
+.next/
+out/
+coverage/
+.turbo/
+.eslintcache
+
+# ---- Build / logs ----
+*.log
+logs/
+tmp/
+.cache/
+
+# ---- Infrastructure as Code ----
+# CDK
+cdk.out/
+cdk.context.json
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# ---- Docker ----
+docker-compose.override.yml

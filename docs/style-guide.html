@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visual Style Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Neutrals (warm) */
+  --bg:#FBF7F4; --surface:#FFFFFF; --surface-soft:#F8F4F1;
+  --ink:#1C1A19; --muted:#86807B; --faint:#B4ADA8;
+  --line:#EFEAE6; --track:#E7E2DD; --gray25:#BFBFBF;
+  /* Primary */
+  --orange:#F97316; --orange-600:#EA6A0E; --orange-tint:#FFEAD6;
+  --red:#E5484D; --red-strong:#D23B40; --red-tint:#FCE6E6;
+  /* Secondary */
+  --green:#1FA463; --green-tint:#DCF3E5;
+  --purple:#7C5CFC; --purple-tint:#ECE7FE;
+  /* Hero */
+  --hero:linear-gradient(135deg,#FB8C3C 0%,#F0533F 100%);
+  /* Shape & depth */
+  --r-card:18px; --r-md:12px; --r-pill:999px;
+  --sh-sm:0 1px 2px rgba(28,26,25,.04), 0 1px 3px rgba(28,26,25,.05);
+  --sh-md:0 6px 24px rgba(28,26,25,.06), 0 2px 6px rgba(28,26,25,.04);
+  --sh-lg:0 18px 50px rgba(240,83,63,.10), 0 6px 16px rgba(28,26,25,.06);
+  --font:'Plus Jakarta Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--ink);background:
+  radial-gradient(circle at 12% 0%, #FFE9DB 0%, transparent 45%),
+  radial-gradient(circle at 88% 4%, #FBE3E2 0%, transparent 42%),
+  linear-gradient(180deg,#FBF7F4,#F6F1ED);
+  min-height:100vh;padding:42px 48px 80px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1060px;margin:0 auto}
+.head h1{font-size:30px;font-weight:800;letter-spacing:-.6px}
+.head p{color:var(--muted);font-size:15px;margin-top:6px;font-weight:500}
+.head .meta{font-size:12.5px;color:var(--faint);margin-top:10px;font-family:var(--mono)}
+.sec{margin-top:42px}
+.sec > h2{font-size:12px;text-transform:uppercase;letter-spacing:1.6px;color:var(--muted);font-weight:700;margin-bottom:16px}
+.card{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--sh-md);padding:24px 26px}
+
+/* color grid */
+.swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.sw{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--sh-sm);overflow:hidden}
+.sw .chip{height:74px}
+.sw .meta{padding:11px 14px}
+.sw .meta b{font-size:13px;font-weight:700;display:block}
+.sw .meta span{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+.sw .meta small{font-size:10.5px;color:var(--faint);display:block;margin-top:2px}
+
+/* type scale */
+.type-row{display:flex;align-items:baseline;gap:18px;padding:12px 0;border-bottom:1px solid var(--line)}
+.type-row:last-child{border:none}
+.type-row .tag{width:120px;font-size:11px;color:var(--muted);font-family:var(--mono);flex:none}
+
+/* components */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.btn{font-family:var(--font);border:none;border-radius:var(--r-pill);padding:11px 20px;font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.18s}
+.btn:hover{transform:translateY(-1px)}
+.btn-cta{background:var(--red);color:#fff;box-shadow:0 6px 16px rgba(229,72,77,.28)}
+.btn-primary{background:var(--orange);color:#fff;box-shadow:0 6px 16px rgba(249,115,22,.26)}
+.btn-soft{background:var(--orange-tint);color:var(--orange-600)}
+.btn-ghost{background:var(--surface-soft);color:var(--muted)}
+.btn-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+
+.badge{font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:var(--r-pill)}
+.b-orange{background:var(--orange-tint);color:var(--orange-600)}
+.b-purple{background:var(--purple-tint);color:var(--purple)}
+.b-green{background:var(--green-tint);color:var(--green)}
+.status{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600}
+.status .dot{width:8px;height:8px;border-radius:50%}
+.s-green .dot{background:var(--green)}.s-green{color:var(--green)}
+.s-orange .dot{background:var(--orange)}.s-orange{color:var(--orange-600)}
+.s-red .dot{background:var(--red)}.s-red{color:var(--red-strong)}
+
+.kpi{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--sh-md);padding:20px 22px}
+.kpi .lab{font-size:12.5px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
+.kpi .ic{width:26px;height:26px;border-radius:9px;background:var(--orange-tint);display:grid;place-items:center}
+.kpi .ic svg{width:15px;height:15px;stroke:var(--orange-600)}
+.kpi .val{font-size:34px;font-weight:800;letter-spacing:-1.2px;margin-top:12px}
+.kpi .val small{font-size:15px;color:var(--faint);font-weight:600}
+.kpi .delta{font-size:12px;font-weight:700;margin-top:4px;color:var(--green)}
+
+.hero{background:var(--hero);border-radius:var(--r-card);box-shadow:var(--sh-lg);padding:22px 24px;color:#fff}
+.hero .lab{font-size:12.5px;font-weight:600;opacity:.92;display:flex;align-items:center;gap:8px}
+.hero .val{font-size:34px;font-weight:800;letter-spacing:-1px;margin-top:10px}
+.hero .bar{height:8px;background:rgba(255,255,255,.30);border-radius:var(--r-pill);margin-top:14px;overflow:hidden}
+.hero .bar i{display:block;height:100%;width:42%;background:#fff;border-radius:var(--r-pill)}
+
+.bar{height:9px;background:var(--track);border-radius:var(--r-pill);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:var(--r-pill)}
+.prog-row{display:flex;align-items:center;gap:12px;margin-bottom:13px}
+.prog-row span{width:90px;font-size:12.5px;font-weight:600}
+
+.codeblock{background:#1f1c1b;border-radius:var(--r-card);padding:22px 24px;overflow:auto;box-shadow:var(--sh-md)}
+.codeblock pre{font-family:var(--mono);font-size:12.5px;line-height:1.7;color:#e9e2dc;white-space:pre}
+.codeblock .c-var{color:#ffb27a}.codeblock .c-val{color:#9ad6b0}.codeblock .c-cm{color:#8a817a}
+
+.shadowbox{height:90px;border-radius:var(--r-card);background:var(--surface);display:grid;place-items:center;font-size:12px;color:var(--muted);font-weight:600}
+.radbox{height:64px;background:var(--orange-tint);display:grid;place-items:center;font-size:12px;color:var(--orange-600);font-weight:700}
+.navdemo{background:var(--surface);border-radius:var(--r-card);box-shadow:var(--sh-md);padding:14px;display:flex;flex-direction:column;gap:4px;width:220px}
+.navitem{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:var(--r-md);font-size:13.5px;font-weight:600;color:var(--muted)}
+.navitem.active{background:var(--orange-tint);color:var(--orange-600)}
+.navitem svg{width:17px;height:17px}
+.note{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <h1>Visual Style Guide</h1>
+    <p>Light, airy SaaS design language · Orange + Red primary, Green / Purple / Gray / White secondary · Plus Jakarta Sans</p>
+    <div class="meta">Design System Reference · v1</div>
+  </div>
+
+  <!-- HOW TO USE -->
+  <div class="sec">
+    <h2>About This Guide</h2>
+    <div class="card">
+      <p class="note" style="margin-top:0">This is a project-agnostic design system reference. It documents the visual language only — color tokens, typography, components, shape, and depth — with no product-specific content. To create a style guide for a new project, start from these tokens and adjust the palette, type, and component samples to fit that project's brand.</p>
+    </div>
+  </div>
+
+  <!-- COLOR -->
+  <div class="sec">
+    <h2>Color Tokens</h2>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:var(--orange)"></div><div class="meta"><b>Orange — Primary</b><span>#F97316</span><small>active state, highlights, progress</small></div></div>
+      <div class="sw"><div class="chip" style="background:var(--red)"></div><div class="meta"><b>Red — CTA / Alert</b><span>#E5484D</span><small>primary button, danger, critical</small></div></div>
+      <div class="sw"><div class="chip" style="background:var(--green)"></div><div class="meta"><b>Green — Success</b><span>#1FA463</span><small>positive state, completion</small></div></div>
+      <div class="sw"><div class="chip" style="background:var(--purple)"></div><div class="meta"><b>Purple — Secondary</b><span>#7C5CFC</span><small>secondary accent</small></div></div>
+      <div class="sw"><div class="chip" style="background:var(--hero)"></div><div class="meta"><b>Hero gradient</b><span>orange → red</span><small>the single filled tile</small></div></div>
+      <div class="sw"><div class="chip" style="background:var(--ink)"></div><div class="meta"><b>Ink — Text</b><span>#1C1A19</span><small>headings, primary text</small></div></div>
+      <div class="sw"><div class="chip" style="background:var(--muted)"></div><div class="meta"><b>Muted — Secondary</b><span>#86807B</span><small>labels, captions</small></div></div>
+      <div class="sw"><div class="chip" style="background:var(--gray25);border-bottom:1px solid var(--line)"></div><div class="meta"><b>Gray 25% — Track</b><span>#BFBFBF</span><small>tracks, disabled, hairlines</small></div></div>
+    </div>
+    <div class="swatches" style="margin-top:14px">
+      <div class="sw"><div class="chip" style="background:var(--orange-tint)"></div><div class="meta"><b>Orange tint</b><span>#FFEAD6</span></div></div>
+      <div class="sw"><div class="chip" style="background:var(--red-tint)"></div><div class="meta"><b>Red tint</b><span>#FCE6E6</span></div></div>
+      <div class="sw"><div class="chip" style="background:var(--green-tint)"></div><div class="meta"><b>Green tint</b><span>#DCF3E5</span></div></div>
+      <div class="sw"><div class="chip" style="background:var(--purple-tint)"></div><div class="meta"><b>Purple tint</b><span>#ECE7FE</span></div></div>
+      <div class="sw"><div class="chip" style="background:var(--surface);border-bottom:1px solid var(--line)"></div><div class="meta"><b>Surface</b><span>#FFFFFF</span><small>cards</small></div></div>
+      <div class="sw"><div class="chip" style="background:var(--surface-soft)"></div><div class="meta"><b>Surface soft</b><span>#F8F4F1</span><small>inset / ghost</small></div></div>
+      <div class="sw"><div class="chip" style="background:var(--bg)"></div><div class="meta"><b>Background</b><span>#FBF7F4</span><small>warm off-white</small></div></div>
+      <div class="sw"><div class="chip" style="background:var(--line)"></div><div class="meta"><b>Hairline</b><span>#EFEAE6</span></div></div>
+    </div>
+    <p class="note"><b>Discipline:</b> near-monochrome warm base; accents used sparingly. <b style="color:var(--orange-600)">Orange</b> signals the primary/active state, <b style="color:var(--purple)">purple</b> and <b style="color:var(--green)">green</b> serve as secondary accents, and <b style="color:var(--red-strong)">red</b> is reserved for CTAs, danger, and alerts.</p>
+  </div>
+
+  <!-- TYPE -->
+  <div class="sec">
+    <h2>Typography — Plus Jakarta Sans</h2>
+    <div class="card">
+      <div class="type-row"><div class="tag">Display / 800</div><div style="font-size:30px;font-weight:800;letter-spacing:-.6px">Display heading</div></div>
+      <div class="type-row"><div class="tag">Metric / 800</div><div style="font-size:34px;font-weight:800;letter-spacing:-1.2px">87%</div></div>
+      <div class="type-row"><div class="tag">H1 / 700</div><div style="font-size:22px;font-weight:700;letter-spacing:-.4px">Section heading</div></div>
+      <div class="type-row"><div class="tag">Body / 500</div><div style="font-size:15px;font-weight:500">Body copy — paragraphs, descriptions, and supporting text set at a comfortable reading length.</div></div>
+      <div class="type-row"><div class="tag">Label / 600</div><div style="font-size:12.5px;font-weight:600;color:var(--muted)">Label · caption</div></div>
+      <div class="type-row"><div class="tag">Mono / IDs</div><div style="font-family:var(--mono);font-size:13px;color:var(--muted)">ID-0000 · token-mono</div></div>
+    </div>
+  </div>
+
+  <!-- BUTTONS + BADGES -->
+  <div class="sec">
+    <h2>Buttons &amp; Status</h2>
+    <div class="grid2">
+      <div class="card">
+        <div style="font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:14px">Buttons</div>
+        <div class="btn-row">
+          <button class="btn btn-cta">Primary CTA</button>
+          <button class="btn btn-primary">Primary</button>
+          <button class="btn btn-soft">Soft</button>
+          <button class="btn btn-ghost">Ghost</button>
+        </div>
+        <p class="note">Deep-red CTA is the single boldest element; orange is the secondary primary.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:14px">Accent badges &amp; status</div>
+        <div class="btn-row" style="margin-bottom:16px">
+          <span class="badge b-orange">Primary</span>
+          <span class="badge b-purple">Secondary</span>
+          <span class="badge b-green">Success</span>
+        </div>
+        <div class="btn-row">
+          <span class="status s-green"><span class="dot"></span>Positive</span>
+          <span class="status s-orange"><span class="dot"></span>Warning</span>
+          <span class="status s-red"><span class="dot"></span>Critical</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARDS -->
+  <div class="sec">
+    <h2>Cards &amp; Data Tiles</h2>
+    <div class="grid3">
+      <div class="hero">
+        <div class="lab">◴ Hero tile</div>
+        <div class="val">42%</div>
+        <div class="bar"><i></i></div>
+      </div>
+      <div class="kpi">
+        <div class="lab"><span class="ic"><svg fill="none" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></span>Metric tile</div>
+        <div class="val">10<small> / 12</small></div>
+        <div class="delta">↑ +2 delta</div>
+      </div>
+      <div class="kpi">
+        <div class="lab"><span class="ic"><svg fill="none" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>Metric tile</div>
+        <div class="val">1,284</div>
+        <div class="delta">↑ +12% delta</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <div style="font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:16px">Progress bars (rounded, soft track)</div>
+      <div class="prog-row"><span>Accent · orange</span><div class="bar" style="flex:1"><i style="width:64%;background:var(--orange)"></i></div></div>
+      <div class="prog-row"><span>Accent · purple</span><div class="bar" style="flex:1"><i style="width:40%;background:var(--purple)"></i></div></div>
+      <div class="prog-row"><span>Accent · green</span><div class="bar" style="flex:1"><i style="width:52%;background:var(--green)"></i></div></div>
+    </div>
+  </div>
+
+  <!-- SHAPE + NAV -->
+  <div class="sec">
+    <h2>Radius, Shadow &amp; Nav</h2>
+    <div class="grid3">
+      <div class="card">
+        <div style="font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:14px">Corner radius</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="radbox" style="border-radius:18px">card · 18px</div>
+          <div class="radbox" style="border-radius:12px">input · 12px</div>
+          <div class="radbox" style="border-radius:999px">pill · button/badge</div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:14px">Elevation</div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="shadowbox" style="box-shadow:var(--sh-sm)">sh-sm</div>
+          <div class="shadowbox" style="box-shadow:var(--sh-md)">sh-md</div>
+        </div>
+        <p class="note">Separation via soft diffuse shadow + rounding — minimal borders.</p>
+      </div>
+      <div>
+        <div style="font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:14px">Nav item</div>
+        <div class="navdemo">
+          <div class="navitem active"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Active item</div>
+          <div class="navitem"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="14" rx="1"/></svg>Default item</div>
+          <div class="navitem"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>Default item</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOKENS CODE -->
+  <div class="sec">
+    <h2>CSS Variables (hand-off)</h2>
+    <div class="codeblock"><pre>:root{
+  <span class="c-cm">/* Neutrals (warm) */</span>
+  <span class="c-var">--bg</span>:<span class="c-val">#FBF7F4</span>;        <span class="c-var">--surface</span>:<span class="c-val">#FFFFFF</span>;     <span class="c-var">--surface-soft</span>:<span class="c-val">#F8F4F1</span>;
+  <span class="c-var">--ink</span>:<span class="c-val">#1C1A19</span>;       <span class="c-var">--muted</span>:<span class="c-val">#86807B</span>;      <span class="c-var">--faint</span>:<span class="c-val">#B4ADA8</span>;
+  <span class="c-var">--line</span>:<span class="c-val">#EFEAE6</span>;      <span class="c-var">--track</span>:<span class="c-val">#E7E2DD</span>;      <span class="c-var">--gray25</span>:<span class="c-val">#BFBFBF</span>;
+  <span class="c-cm">/* Primary */</span>
+  <span class="c-var">--orange</span>:<span class="c-val">#F97316</span>;    <span class="c-var">--orange-600</span>:<span class="c-val">#EA6A0E</span>;  <span class="c-var">--orange-tint</span>:<span class="c-val">#FFEAD6</span>;
+  <span class="c-var">--red</span>:<span class="c-val">#E5484D</span>;       <span class="c-var">--red-strong</span>:<span class="c-val">#D23B40</span>;  <span class="c-var">--red-tint</span>:<span class="c-val">#FCE6E6</span>;
+  <span class="c-cm">/* Secondary */</span>
+  <span class="c-var">--green</span>:<span class="c-val">#1FA463</span>;     <span class="c-var">--green-tint</span>:<span class="c-val">#DCF3E5</span>;
+  <span class="c-var">--purple</span>:<span class="c-val">#7C5CFC</span>;    <span class="c-var">--purple-tint</span>:<span class="c-val">#ECE7FE</span>;
+  <span class="c-cm">/* Hero / shape / depth */</span>
+  <span class="c-var">--hero</span>:<span class="c-val">linear-gradient(135deg,#FB8C3C,#F0533F)</span>;
+  <span class="c-var">--r-card</span>:<span class="c-val">18px</span>; <span class="c-var">--r-md</span>:<span class="c-val">12px</span>; <span class="c-var">--r-pill</span>:<span class="c-val">999px</span>;
+  <span class="c-var">--sh-md</span>:<span class="c-val">0 6px 24px rgba(28,26,25,.06), 0 2px 6px rgba(28,26,25,.04)</span>;
+  <span class="c-var">--font</span>:<span class="c-val">'Plus Jakarta Sans', system-ui, sans-serif</span>;
+}</pre></div>
+  </div>
+</div>
+</body>
+</html>
