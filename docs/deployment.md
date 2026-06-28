@@ -39,7 +39,23 @@ The full standards for how this is provisioned live in `.kiro/steering/iac-conve
 
 ---
 
-## Two Phases of Deployment
+## Deployment Phases
+
+### Phase 0 — First-time account bootstrap (new AWS account only)
+
+Do this **once per AWS account**, before any infrastructure exists. It's the setup that lets you (and CI) deploy at all. Ask Kiro:
+
+> Walk me through bootstrapping this AWS account for deployment per the deploy-release account-bootstrap guide: confirm my identity, create the GitHub OIDC deploy role scoped to this repo, bootstrap CDK (or set up the Terraform state backend), and set up the Route 53 hosted zone + ACM certificate.
+
+The checklist (full recipes in `.kiro/skills/deploy-release/references/aws-account-bootstrap.md`):
+
+- [ ] **Identity** — IAM Identity Center (SSO) configured; `aws sts get-caller-identity` returns the right account (no long-lived root/user keys)
+- [ ] **GitHub OIDC deploy role** — OIDC provider + an IAM role whose trust is scoped to `repo:<owner>/<repo>` (branch or environment); least-privilege permissions; role ARN saved as the `AWS_DEPLOY_ROLE_ARN` repo secret
+- [ ] **IaC backend** — `cdk bootstrap aws://<account>/<region>` *or* a Terraform state backend (encrypted, versioned S3 bucket + DynamoDB lock table)
+- [ ] **DNS & TLS** — Route 53 hosted zone live; ACM certificate **issued** (in `us-east-1` if it fronts CloudFront)
+- [ ] **Guardrails** — primary region chosen; encryption defaults confirmed; no DB/admin ports open to `0.0.0.0/0`
+
+Skip this phase entirely if you're deploying into an account that's already bootstrapped.
 
 ### Phase 1 — One-time infrastructure setup
 
