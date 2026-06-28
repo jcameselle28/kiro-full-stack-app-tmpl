@@ -34,10 +34,14 @@ docs/                → golden path, getting started, architecture, customizati
 
 ## Quick Start
 
-1. **Copy the template** into your new project (the whole repo, or just the `.kiro/` folder):
+> This repo is a **template repository** — create a new repo from it and build your project there. This template stays clean; you never push your project back to it.
+
+1. **Create your project from this template** (fresh history, nothing from this repo's commits comes along):
    ```bash
-   cp -r /path/to/template/.kiro /path/to/your-project/.kiro
+   gh repo create my-app --template jcameselle28/kiro-full-stack-app-tmpl --private --clone
+   cd my-app
    ```
+   Or use the **"Use this template"** button on the template's GitHub page.
 
 2. **Create your project config** from the template:
    ```bash
@@ -74,3 +78,13 @@ See [docs/getting-started.md](./docs/getting-started.md) for the full setup walk
 - **MCP is off by default** to save tokens. The single `aws` server uses the MCP Proxy for AWS and requires valid AWS credentials when enabled. Enable it in chat ("Enable the AWS MCP") or by flipping the `disabled` flag in `.kiro/settings/mcp.json`. See [docs/mcp-servers.md](./docs/mcp-servers.md).
 - **No hooks are included** — add per-project as needed (see the [Kiro docs](https://kiro.dev/docs/hooks)).
 - **Security**: never commit secrets; load them from Secrets Manager / SSM at runtime. See `.kiro/steering/security-guardrails.md`.
+
+## Maintaining This Template
+
+This repo is the canonical template and stays clean — it changes only when the template itself is updated, not when building projects.
+
+To update it:
+1. Clone this repo (not a project created from it).
+2. Branch off `main` per `.kiro/steering/git-workflow.md` (e.g. `feat/add-redis-skill`).
+3. Open a PR into `main`. Branch protection requires ≥1 approval and a green CI before merge.
+4. After merge, projects created from the template pick up changes only if they intentionally re-sync — existing projects are not affected automatically.

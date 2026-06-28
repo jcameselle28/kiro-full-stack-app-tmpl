@@ -1,13 +1,15 @@
 # Getting Started
 
-## 1. Clone the Repository
+## 1. Create Your Project From the Template
+
+This repo is a **template repository** — create a new repo from it and work there; this template stays untouched.
 
 ```bash
-git clone <repo-url> my-aws-webapp
-cd my-aws-webapp
+gh repo create my-app --template jcameselle28/kiro-full-stack-app-tmpl --private --clone
+cd my-app
 ```
 
-Or copy just the `.kiro/` folder into an existing project:
+Or click **"Use this template"** on the template's GitHub page. To add the configuration to an *existing* project instead, copy just the `.kiro/` folder:
 
 ```bash
 cp -r /path/to/template/.kiro /path/to/your-project/.kiro
