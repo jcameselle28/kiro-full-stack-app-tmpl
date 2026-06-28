@@ -1,6 +1,6 @@
 ---
 name: deploy-release
-description: This skill provides the release process for web apps on AWS — building artifacts (Docker/AMI), pushing to ECR, deploying to EC2/Auto Scaling behind an ALB, zero-downtime rollouts (rolling and blue/green via target groups), ordering database migrations safely, config/secrets at deploy, health checks, smoke tests, and rollback. Bridges development and deployment without being full ops. Triggers on requests about deploy, release, rollout, blue/green, rollback, artifacts, or shipping.
+description: This skill provides the release process for web apps on AWS — building artifacts (Docker/AMI), pushing to ECR, deploying to EC2/Auto Scaling behind an ALB, zero-downtime rollouts (rolling and blue/green via target groups), ordering database migrations safely, config/secrets at deploy, health checks, smoke tests, and rollback. It also covers first-time AWS account bootstrap (GitHub OIDC deploy role, CDK bootstrap, Terraform state backend, DNS/ACM). Bridges development and deployment without being full ops. Triggers on requests about deploy, release, rollout, blue/green, rollback, artifacts, shipping, account bootstrap, OIDC, or first deploy.
 ---
 
 # Deploy & Release Skill
@@ -11,6 +11,23 @@ The process of safely shipping a web application to AWS. This is the **dev→dep
 - deploy, deployment, release, ship, rollout, cutover
 - blue/green, canary, rolling, target group, AMI, image, ECR
 - rollback, smoke test, health check, migration order
+- account bootstrap, first deploy, OIDC, cdk bootstrap, terraform backend, deploy role
+
+## Account Bootstrap (First Time, Per Account)
+
+Before the first deploy to a **new AWS account**, complete these one-time setup steps. The release process below assumes they're done. Keep everything least-privilege and credential-free per `security-guardrails.md`.
+
+1. **Identity & credentials** — use IAM Identity Center (SSO) for human access; never long-lived root/IAM user keys. Verify with `aws sts get-caller-identity`.
+2. **GitHub → AWS OIDC deploy role** — create an IAM OIDC identity provider for GitHub Actions and a deploy role with a trust policy scoped to your repo (and branch/environment); grant only the actions the deploy needs. This replaces stored access keys in CI.
+3. **IaC backend**:
+   - **CDK**: run `cdk bootstrap aws://<account>/<region>` once per account+region (creates the CDK toolkit stack/assets bucket).
+   - **Terraform**: create the remote state backend — an encrypted S3 bucket (versioned, public access blocked) + a DynamoDB table for state locking — before `terraform init`.
+4. **DNS & TLS** — create the Route 53 hosted zone for your domain and request/validate an ACM certificate (in `us-east-1` for CloudFront) so the edge layer can use HTTPS.
+5. **Region & guardrails** — pick the primary region, confirm encryption defaults, and verify no security groups expose DB/admin ports to `0.0.0.0/0`.
+
+Order: identity → OIDC role → IaC backend → DNS/ACM → first `cdk deploy` / `terraform apply` of the infra → then the release pipeline below.
+
+For concrete recipes (OIDC trust policy, CDK bootstrap, Terraform state backend, DNS/ACM), see `references/aws-account-bootstrap.md`. When the AWS MCP is enabled, the agent can also pull current AWS docs and inspect the live account to confirm these are in place.
 
 ## Release Pipeline Overview
 
